@@ -1,0 +1,210 @@
+{
+  "restaurant": {
+    "name": "Unknown",
+    "source_image": "C:\\Users\\moinu\\OneDrive\\Documents\\Test - Pikky\\image2text\\sample\\file-page1.png"
+  },
+  "categories": [
+    {
+      "categoryname": "SPECIAL",
+      "categoryid": null,
+      "confidence": 1.0,
+      "coordinates": null,
+      "rank": null,
+      "active": "1"
+    },
+    {
+      "categoryname": "CALZONE",
+      "categoryid": null,
+      "confidence": 1.0,
+      "coordinates": null,
+      "rank": null,
+      "active": "1"
+    },
+    {
+      "categoryname": "MENU",
+      "categoryid": null,
+      "confidence": 1.0,
+      "coordinates": null,
+      "rank": null,
+      "active": "1"
+    }
+  ],
+  "items": [
+    {
+      "itemname": "Three Cheese",
+      "itemid": null,
+      "categoryid": null,
+      "description": "(Mozzarella+Cheddar+Cream Cheese\n+Tomato+Basil+ Balsamic Drizzle)",
+      "price": 259.0,
+      "price_variants": [],
+      "currency": "INR",
+      "instock": 2,
+      "availability": 1,
+      "tags": [
+        "veg"
+      ],
+      "addongroups": [],
+      "coordinates": null,
+      "confidence": 1.0
+    },
+    {
+      "itemname": "Caprese",
+      "itemid": null,
+      "categoryid": null,
+      "description": "",
+      "price": null,
+      "price_variants": [],
+      "currency": "INR",
+      "instock": 2,
+      "availability": 1,
+      "tags": [
+        "veg"
+      ],
+      "addongroups": [],
+      "coordinates": null,
+      "confidence": 1.0
+    },
+    {
+      "itemname": "Mushroom Pesto &",
+      "itemid": null,
+      "categoryid": null,
+      "description": "(Sauteed Mushrooms+Pesto+\nMozzarella+Sun Dried Tomato)",
+      "price": 299.0,
+      "price_variants": [],
+      "currency": "INR",
+      "instock": 2,
+      "availability": 1,
+      "tags": [
+        "veg"
+      ],
+      "addongroups": [],
+      "coordinates": null,
+      "confidence": 1.0
+    },
+    {
+      "itemname": "Chicken & Spinach",
+      "itemid": null,
+      "categoryid": null,
+      "description": "(Tomato Sauce+Spinach+Chicken+\nBell Pepper+Mozzarella)",
+      "price": 289.0,
+      "price_variants": [],
+      "currency": "INR",
+      "instock": 2,
+      "availability": 1,
+      "tags": [
+        "non-veg"
+      ],
+      "addongroups": [],
+      "coordinates": null,
+      "confidence": 1.0
+    },
+    {
+      "itemname": "Smokey Chorizo",
+      "itemid": null,
+      "categoryid": null,
+      "description": "(Chorizo (pork)+Mozzarella+Basil)",
+      "price": 329.0,
+      "price_variants": [],
+      "currency": "INR",
+      "instock": 2,
+      "availability": 1,
+      "tags": [
+        "non-veg"
+      ],
+      "addongroups": [],
+      "coordinates": null,
+      "confidence": 1.0
+    },
+    {
+      "itemname": "Ultimate Meat Lovers",
+      "itemid": null,
+      "categoryid": null,
+      "description": "(Ham+Pepperoni (pork)+Jalapenio+\nTomato Sauce+Mozzarella)",
+      "price": 449.0,
+      "price_variants": [],
+      "currency": "INR",
+      "instock": 2,
+      "availability": 1,
+      "tags": [
+        "non-veg"
+      ],
+      "addongroups": [],
+      "coordinates": null,
+      "confidence": 1.0
+    },
+    {
+      "itemname": "Mexican Style &",
+      "itemid": null,
+      "categoryid": null,
+      "description": "(Tomato+Basil+Spices+Corn+Tomato\nSauce+Mozzarella+Paneer or Chicken)",
+      "price": 289.0,
+      "price_variants": [
+        349.0
+      ],
+      "currency": "INR",
+      "instock": 2,
+      "availability": 1,
+      "tags": [
+        "veg",
+        "non-veg",
+        "spicy"
+      ],
+      "addongroups": [],
+      "coordinates": null,
+      "confidence": 1.0
+    },
+    {
+      "itemname": "Chicken Teriyaki 2",
+      "itemid": null,
+      "categoryid": null,
+      "description": "",
+      "price": 259.0,
+      "price_variants": [],
+      "currency": "INR",
+      "instock": 2,
+      "availability": 1,
+      "tags": [
+        "non-veg"
+      ],
+      "addongroups": [],
+      "coordinates": null,
+      "confidence": 1.0
+    },
+    {
+      "itemname": "Paneer Bhurji 2",
+      "itemid": null,
+      "categoryid": null,
+      "description": "",
+      "price": 229.0,
+      "price_variants": [],
+      "currency": "INR",
+      "instock": 2,
+      "availability": 1,
+      "tags": [
+        "veg"
+      ],
+      "addongroups": [],
+      "coordinates": null,
+      "confidence": 1.0
+    },
+    {
+      "itemname": "Mushroom Gochujang",
+      "itemid": null,
+      "categoryid": null,
+      "description": "",
+      "price": 269.0,
+      "price_variants": [],
+      "currency": "INR",
+      "instock": 2,
+      "availability": 1,
+      "tags": [
+        "veg"
+      ],
+      "addongroups": [],
+      "coordinates": null,
+      "confidence": 1.0
+    }
+  ],
+  "addongroups": [],
+  "audit_log": []
+}

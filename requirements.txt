@@ -1,0 +1,15 @@
+# Core OCR dependencies
+pytesseract>=0.3.10
+
+# LLM and AI dependencies
+google-generativeai>=0.8.0
+
+# Data processing and export dependencies
+pandas>=2.0.0
+openpyxl>=3.1.0
+
+# Development and linting dependencies
+flake8>=7.0.0
+pycodestyle>=2.11.0
+pyflakes>=3.2.0
+mccabe>=0.7.0
