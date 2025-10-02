@@ -66,75 +66,144 @@ class GeminiConverter:
             str: The system prompt for Gemini
         """
         return """You are an expert at parsing restaurant menu text extracted from images using OCR. 
-Convert the given OCR text into a structured JSON format for restaurant menus.
+Convert the given OCR text into a structured JSON format matching a restaurant POS system database schema.
 
 CRITICAL INSTRUCTIONS:
 1. Return ONLY valid JSON - no explanations, no markdown, no additional text
 2. Follow the exact schema provided below
 3. If information is missing, use the specified default values
-4. Extract prices as numbers (remove currency symbols)
+4. Extract prices as numbers (remove currency symbols like ₹, -, /)
 5. Identify menu categories and items accurately
 6. Handle OCR errors gracefully by making reasonable inferences
+7. For items with multiple prices (e.g., "289/349"), create variation records
 
 JSON SCHEMA:
 {
   "restaurant": {
-    "name": "<restaurant name or 'Unknown'>",
-    "source_image": "<path to the menu image or 'Unknown'>"
+    "restaurantname": "<restaurant name or 'Unknown'>",
+    "source_image": "<path to the menu image>",
+    "country": "",
+    "address": "",
+    "contact": "",
+    "cuisines": "",
+    "city": "",
+    "state": ""
   },
+  "areas": [
+    {
+      "areaid": null,
+      "displayname": "Main Dining",
+      "active": "1",
+      "rank": "1"
+    }
+  ],
   "categories": [
     {
-      "categoryname": "<string>",
       "categoryid": null,
-      "confidence": 1.0,
-      "coordinates": null,
-      "rank": null,
-      "active": "1"
+      "categoryname": "<string>",
+      "active": "1",
+      "categoryrank": "<sequence number>",
+      "category_image_url": null,
+      "parent_category_id": "0",
+      "categorytimings": ""
     }
   ],
   "items": [
     {
-      "itemname": "<string>",
       "itemid": null,
-      "categoryid": null,
-      "description": "<string>",
-      "price": <number or null>,
-      "price_variants": [<array of numbers>],
-      "currency": "INR",
-      "instock": 2,
-      "availability": 1,
-      "tags": ["<infer tags like 'veg', 'non-veg', 'spicy', etc>"],
-      "addongroups": [],
-      "coordinates": null,
-      "confidence": 1.0
+      "itemallowvariation": 0,
+      "itemname": "<string>",
+      "itemrank": "1",
+      "item_categoryid": null,
+      "price": "<price as string>",
+      "active": "1",
+      "item_favorite": "0",
+      "itemallowaddon": "1",
+      "itemaddonbasedon": "0",
+      "instock": "2",
+      "ignore_taxes": "0",
+      "ignore_discounts": "0",
+      "days": "-1",
+      "item_attributeid": "<1=veg, 2=non-veg, 24=egg>",
+      "itemdescription": "<string>",
+      "minimumpreparationtime": "",
+      "item_image_url": "",
+      "variation": [
+        {
+          "variationitemid": null,
+          "variationid": null,
+          "itemid": null,
+          "variation_name": "<size/type>",
+          "variation_price": "<price as string>",
+          "variationrank": "1"
+        }
+      ],
+      "addon": [
+        {
+          "addon_group_id": null,
+          "addon_item_selection": "M",
+          "addon_item_selection_min": "0",
+          "addon_item_selection_max": "2"
+        }
+      ],
+      "item_tax": ""
     }
   ],
   "addongroups": [
     {
-      "group_name": "<string>",
-      "group_id": null,
-      "min_select": 0,
-      "max_select": 2,
-      "items": ["<array of addon items>"]
+      "addongroupid": null,
+      "addongroup_restaurantid": null,
+      "addongroup_rank": "1",
+      "active": "1",
+      "show_in_online": "1",
+      "show_in_pos": "1",
+      "min_qty": "0",
+      "max_qty": "2",
+      "addongroup_name": "<string>",
+      "addongroupitems": [
+        {
+          "addonitemid": null,
+          "addonitem_name": "<string>",
+          "addonitem_price": "<price as string>",
+          "active": "1",
+          "attributes": "<1=veg, 2=non-veg>",
+          "addonitem_rank": "1",
+          "parent_addon_id": "0",
+          "status": "1"
+        }
+      ]
     }
   ],
   "audit_log": []
 }
 
 DEFAULT VALUES:
-- instock: 2
-- availability: 1  
-- active: "1"
-- price: null (if not found)
-- description: "" (if missing)
-- currency: "INR"
-- confidence: 1.0
+- instock: "2" (2=available, 1=low stock, 0=out of stock)
+- active: "1" (1=active, 0=inactive)
+- item_attributeid: "1" for veg, "2" for non-veg, "24" for egg
+- itemallowaddon: "1" if item can have add-ons
+- itemallowvariation: 0 (set to 1 if item has size/type variations)
+- categoryrank: sequential number based on order in menu
+- itemrank: "1" by default
 
-EXAMPLES OF MENU ITEMS TO PARSE:
-- "Chicken Teriyaki 259/-" → price: 259, itemname: "Chicken Teriyaki"
-- "Add extra cheese 40/-" → addon item with price 40
-- "CALZONE MENU" → category name
-- "Japanese style with soy glaze" → item description
+PARSING RULES:
+1. Category Detection: Lines with ALL CAPS or section headers (e.g., "CALZONE MENU", "PIZZAS")
+2. Item Format: "Item Name   Price" or "Item Name   ₹Price/-"
+3. Description: Text in parentheses or lines following item name
+4. Price Variants: "289/349" → create variation entries
+5. Add-ons: Items like "Add extra cheese 40" → goes to addongroups
+6. Attributes: Detect veg/non-veg from context (chicken/mutton=non-veg, paneer/veg=veg)
+
+EXAMPLES:
+Input: "Three Cheese ₹259/-\n(Mozzarella+Cheddar+Cream Cheese)"
+Output: itemname="Three Cheese", price="259", itemdescription="(Mozzarella+Cheddar+Cream Cheese)", item_attributeid="1"
+
+Input: "Chicken Teriyaki 289/349"
+Output: itemname="Chicken Teriyaki", price="289", item_attributeid="2", itemallowvariation=1, 
+        variation=[{variation_name: "Regular", variation_price: "289"}, {variation_name: "Large", variation_price: "349"}]
+
+Input: "Add extra cheese 40/-"
+Output: addongroup with addonitem_name="Extra Cheese", addonitem_price="40"
 
 Return ONLY the JSON object, nothing else."""
 
@@ -227,10 +296,29 @@ Convert this to the specified JSON format:"""
         """
         # Ensure top-level structure
         if "restaurant" not in json_data:
-            json_data["restaurant"] = {"name": "Unknown", "source_image": source_image_path or "Unknown"}
+            json_data["restaurant"] = {
+                "restaurantname": "Unknown",
+                "source_image": source_image_path or "Unknown",
+                "country": "",
+                "address": "",
+                "contact": "",
+                "cuisines": "",
+                "city": "",
+                "state": ""
+            }
         else:
-            if source_image_path and json_data["restaurant"].get("source_image") in [None, "Unknown"]:
+            if source_image_path:
                 json_data["restaurant"]["source_image"] = source_image_path
+            json_data["restaurant"].setdefault("restaurantname", "Unknown")
+            json_data["restaurant"].setdefault("country", "")
+            json_data["restaurant"].setdefault("address", "")
+            json_data["restaurant"].setdefault("contact", "")
+            json_data["restaurant"].setdefault("cuisines", "")
+            json_data["restaurant"].setdefault("city", "")
+            json_data["restaurant"].setdefault("state", "")
+        
+        if "areas" not in json_data:
+            json_data["areas"] = []
         
         if "categories" not in json_data:
             json_data["categories"] = []
@@ -244,34 +332,64 @@ Convert this to the specified JSON format:"""
         if "audit_log" not in json_data:
             json_data["audit_log"] = []
         
+        # Validate and enhance areas
+        for area in json_data["areas"]:
+            area.setdefault("areaid", None)
+            area.setdefault("displayname", "Main Dining")
+            area.setdefault("active", "1")
+            area.setdefault("rank", "1")
+        
         # Validate and enhance categories
         for category in json_data["categories"]:
             category.setdefault("categoryid", None)
-            category.setdefault("confidence", 1.0)
-            category.setdefault("coordinates", None)
-            category.setdefault("rank", None)
             category.setdefault("active", "1")
+            category.setdefault("categoryrank", "1")
+            category.setdefault("category_image_url", None)
+            category.setdefault("parent_category_id", "0")
+            category.setdefault("categorytimings", "")
         
         # Validate and enhance items
         for item in json_data["items"]:
             item.setdefault("itemid", None)
-            item.setdefault("categoryid", None)
-            item.setdefault("description", "")
-            item.setdefault("price_variants", [item.get("price")] if item.get("price") else [])
-            item.setdefault("currency", "INR")
-            item.setdefault("instock", 2)
-            item.setdefault("availability", 1)
-            item.setdefault("tags", [])
-            item.setdefault("addongroups", [])
-            item.setdefault("coordinates", None)
-            item.setdefault("confidence", 1.0)
+            item.setdefault("itemallowvariation", 0)
+            item.setdefault("itemrank", "1")
+            item.setdefault("item_categoryid", None)
+            item.setdefault("active", "1")
+            item.setdefault("item_favorite", "0")
+            item.setdefault("itemallowaddon", "1")
+            item.setdefault("itemaddonbasedon", "0")
+            item.setdefault("instock", "2")
+            item.setdefault("ignore_taxes", "0")
+            item.setdefault("ignore_discounts", "0")
+            item.setdefault("days", "-1")
+            item.setdefault("item_attributeid", "1")
+            item.setdefault("itemdescription", "")
+            item.setdefault("minimumpreparationtime", "")
+            item.setdefault("item_image_url", "")
+            item.setdefault("variation", [])
+            item.setdefault("addon", [])
+            item.setdefault("item_tax", "")
         
         # Validate and enhance addongroups
         for group in json_data["addongroups"]:
-            group.setdefault("group_id", None)
-            group.setdefault("min_select", 0)
-            group.setdefault("max_select", 2)
-            group.setdefault("items", [])
+            group.setdefault("addongroupid", None)
+            group.setdefault("addongroup_restaurantid", None)
+            group.setdefault("addongroup_rank", "1")
+            group.setdefault("active", "1")
+            group.setdefault("show_in_online", "1")
+            group.setdefault("show_in_pos", "1")
+            group.setdefault("min_qty", "0")
+            group.setdefault("max_qty", "2")
+            group.setdefault("addongroupitems", [])
+            
+            # Validate addon group items
+            for addon_item in group.get("addongroupitems", []):
+                addon_item.setdefault("addonitemid", None)
+                addon_item.setdefault("active", "1")
+                addon_item.setdefault("attributes", "1")
+                addon_item.setdefault("addonitem_rank", "1")
+                addon_item.setdefault("parent_addon_id", "0")
+                addon_item.setdefault("status", "1")
         
         return json_data
 

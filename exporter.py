@@ -101,70 +101,265 @@ class MenuExcelExporter:
         df.to_excel(writer, sheet_name="Restaurant", index=False)
     
     def _export_single_sheet(self, json_data: Dict, writer) -> None:
-        """Export all menu data to a single Excel sheet with specified column headers"""
+        """Export all menu data to a single Excel sheet matching data_reference.json schema"""
         restaurant_data = json_data.get("restaurant", {})
-        categories = json_data.get("categories", [])
-        items = json_data.get("items", [])
-        addongroups = json_data.get("addongroups", [])
+        restaurant_name = restaurant_data.get("restaurantname", "Unknown")
         
-        # Prepare data rows
+        # Get areas (use first area if available)
+        areas = json_data.get("areas", [])
+        area_id = areas[0].get("areaid") if areas else None
+        area_display_name = areas[0].get("displayname") if areas else None
+        
+        # Create category lookup
+        category_map = {cat.get("categoryid"): cat for cat in json_data.get("categories", [])}
+        
+        # Create addon group lookup
+        addon_group_map = {grp.get("addongroupid"): grp for grp in json_data.get("addongroups", [])}
+        
+        rows = []
+        items = json_data.get("items", [])
+        
+        if not items:
+            # Create empty row with just restaurant info
+            rows.append(self._create_empty_row_new_schema(restaurant_name, area_id, area_display_name))
+        else:
+            # Process each item
+            for item in items:
+                rows.extend(self._create_item_rows(
+                    item,
+                    restaurant_name,
+                    area_id,
+                    area_display_name,
+                    category_map,
+                    addon_group_map
+                ))
+        
+        # Create DataFrame with exact column order
+        df = pd.DataFrame(rows, columns=[
+            "restaurant_name",
+            "area_id",
+            "area_display_name",
+            "category_id",
+            "category_name",
+            "category_image_url",
+            "category_timings",
+            "category_rank",
+            "item_id",
+            "item_name",
+            "item_description",
+            "price",
+            "rank",
+            "image_url",
+            "instock",
+            "variation_item_id",
+            "variation_id",
+            "variation_name",
+            "variation_price",
+            "addon_name",
+            "addon_item_selection",
+            "addon_item_selection_min",
+            "addon_item_selection_max",
+            "addon_price",
+            "addon_id",
+            "addon_group_id",
+            "addon_group_name",
+        ])
+        
+        df.to_excel(writer, sheet_name="Menu_Data", index=False)
+    
+    def _create_empty_row_new_schema(self, restaurant_name: str, area_id, area_display_name) -> Dict:
+        """Create an empty row with restaurant info for new schema"""
+        return {
+            "restaurant_name": restaurant_name,
+            "area_id": area_id,
+            "area_display_name": area_display_name,
+            "category_id": None,
+            "category_name": None,
+            "category_image_url": None,
+            "category_timings": None,
+            "category_rank": None,
+            "item_id": None,
+            "item_name": None,
+            "item_description": None,
+            "price": None,
+            "rank": None,
+            "image_url": None,
+            "instock": None,
+            "variation_item_id": None,
+            "variation_id": None,
+            "variation_name": None,
+            "variation_price": None,
+            "addon_name": None,
+            "addon_item_selection": None,
+            "addon_item_selection_min": None,
+            "addon_item_selection_max": None,
+            "addon_price": None,
+            "addon_id": None,
+            "addon_group_id": None,
+            "addon_group_name": None
+        }
+    
+    def _create_item_rows(self, item: Dict, restaurant_name: str, area_id, area_display_name,
+                          category_map: Dict, addon_group_map: Dict) -> list:
+        """Create all necessary rows for a single item (including variations and addons)"""
         rows = []
         
-        # If no items, create at least one row with restaurant info
-        if not items:
-            rows.append(self._create_empty_row(restaurant_data))
-        else:
-            # Create rows for each item, potentially with variations and addons
-            for item in items:
-                # Find matching category (if any)
-                category_info = self._find_category_info(item, categories)
-                
-                # Get addon information for this item
-                item_addons = self._get_item_addons(item, addongroups)
-                
-                # Check if item has price variants
-                price_variants = item.get("price_variants", [])
-                main_price = item.get("price")
-                
-                # Create base row data
-                base_row = self._create_base_row(restaurant_data, category_info, item)
-                
-                # If no variants and no addons, create single row
-                if not price_variants and not item_addons:
-                    rows.append(base_row)
-                else:
-                    # Handle price variants
-                    if price_variants:
-                        for i, variant_price in enumerate(price_variants):
-                            row = base_row.copy()
-                            row.update({
-                                "variation_item_id": f"{item.get('itemid', '')}_var_{i+1}" if item.get('itemid') else None,
-                                "variation_id": i + 1,
-                                "variation_name": f"Variant {i+1}",
-                                "variation_price": variant_price,
-                                "price": variant_price
-                            })
-                            
-                            # Add addon info if available
-                            if item_addons:
-                                for addon in item_addons:
-                                    addon_row = row.copy()
-                                    addon_row.update(addon)
-                                    rows.append(addon_row)
-                            else:
-                                rows.append(row)
-                    else:
-                        # No variants, but has addons
-                        if item_addons:
-                            for addon in item_addons:
-                                addon_row = base_row.copy()
-                                addon_row.update(addon)
-                                rows.append(addon_row)
-                        else:
-                            rows.append(base_row)
+        # Get category info
+        category_id = item.get("item_categoryid")
+        category_info = category_map.get(category_id, {})
         
-        df = pd.DataFrame(rows)
-        df.to_excel(writer, sheet_name="Menu_Data", index=False)
+        # Base row data
+        base_data = {
+            "restaurant_name": restaurant_name,
+            "area_id": area_id,
+            "area_display_name": area_display_name,
+            "category_id": category_id,
+            "category_name": category_info.get("categoryname", ""),
+            "category_image_url": category_info.get("category_image_url"),
+            "category_timings": category_info.get("categorytimings"),
+            "category_rank": category_info.get("categoryrank"),
+            "item_id": item.get("itemid"),
+            "item_name": item.get("itemname", ""),
+            "item_description": item.get("itemdescription", ""),
+            "price": item.get("price"),
+            "rank": item.get("itemrank"),
+            "image_url": item.get("item_image_url"),
+            "instock": item.get("instock", "2"),
+        }
+        
+        variations = item.get("variation", [])
+        addon_refs = item.get("addon", [])
+        
+        # Determine how to create rows
+        if not variations and not addon_refs:
+            # Simple item - no variations or addons
+            row = base_data.copy()
+            row.update({
+                "variation_item_id": None,
+                "variation_id": None,
+                "variation_name": None,
+                "variation_price": None,
+                "addon_name": None,
+                "addon_item_selection": None,
+                "addon_item_selection_min": None,
+                "addon_item_selection_max": None,
+                "addon_price": None,
+                "addon_id": None,
+                "addon_group_id": None,
+                "addon_group_name": None,
+            })
+            rows.append(row)
+        
+        elif variations and not addon_refs:
+            # Item with variations, no addons
+            for variation in variations:
+                row = base_data.copy()
+                row.update({
+                    "variation_item_id": variation.get("variationitemid"),
+                    "variation_id": variation.get("variationid"),
+                    "variation_name": variation.get("variation_name"),
+                    "variation_price": variation.get("variation_price"),
+                    "addon_name": None,
+                    "addon_item_selection": None,
+                    "addon_item_selection_min": None,
+                    "addon_item_selection_max": None,
+                    "addon_price": None,
+                    "addon_id": None,
+                    "addon_group_id": None,
+                    "addon_group_name": None,
+                })
+                rows.append(row)
+        
+        elif not variations and addon_refs:
+            # Item with addons, no variations
+            for addon_ref in addon_refs:
+                addon_group_id = addon_ref.get("addon_group_id")
+                addon_group = addon_group_map.get(addon_group_id, {})
+                addon_items = addon_group.get("addongroupitems", [])
+                
+                if addon_items:
+                    for addon_item in addon_items:
+                        row = base_data.copy()
+                        row.update({
+                            "variation_item_id": None,
+                            "variation_id": None,
+                            "variation_name": None,
+                            "variation_price": None,
+                            "addon_name": addon_item.get("addonitem_name"),
+                            "addon_item_selection": addon_ref.get("addon_item_selection"),
+                            "addon_item_selection_min": addon_ref.get("addon_item_selection_min", "0"),
+                            "addon_item_selection_max": addon_ref.get("addon_item_selection_max", "2"),
+                            "addon_price": addon_item.get("addonitem_price"),
+                            "addon_id": addon_item.get("addonitemid"),
+                            "addon_group_id": addon_group_id,
+                            "addon_group_name": addon_group.get("addongroup_name", ""),
+                        })
+                        rows.append(row)
+                else:
+                    # Addon group with no items
+                    row = base_data.copy()
+                    row.update({
+                        "variation_item_id": None,
+                        "variation_id": None,
+                        "variation_name": None,
+                        "variation_price": None,
+                        "addon_name": None,
+                        "addon_item_selection": addon_ref.get("addon_item_selection"),
+                        "addon_item_selection_min": addon_ref.get("addon_item_selection_min", "0"),
+                        "addon_item_selection_max": addon_ref.get("addon_item_selection_max", "2"),
+                        "addon_price": None,
+                        "addon_id": None,
+                        "addon_group_id": addon_group_id,
+                        "addon_group_name": addon_group.get("addongroup_name", ""),
+                    })
+                    rows.append(row)
+        
+        else:
+            # Item with both variations and addons - create cartesian product
+            for variation in variations:
+                for addon_ref in addon_refs:
+                    addon_group_id = addon_ref.get("addon_group_id")
+                    addon_group = addon_group_map.get(addon_group_id, {})
+                    addon_items = addon_group.get("addongroupitems", [])
+                    
+                    if addon_items:
+                        for addon_item in addon_items:
+                            row = base_data.copy()
+                            row.update({
+                                "variation_item_id": variation.get("variationitemid"),
+                                "variation_id": variation.get("variationid"),
+                                "variation_name": variation.get("variation_name"),
+                                "variation_price": variation.get("variation_price"),
+                                "addon_name": addon_item.get("addonitem_name"),
+                                "addon_item_selection": addon_ref.get("addon_item_selection"),
+                                "addon_item_selection_min": addon_ref.get("addon_item_selection_min", "0"),
+                                "addon_item_selection_max": addon_ref.get("addon_item_selection_max", "2"),
+                                "addon_price": addon_item.get("addonitem_price"),
+                                "addon_id": addon_item.get("addonitemid"),
+                                "addon_group_id": addon_group_id,
+                                "addon_group_name": addon_group.get("addongroup_name", ""),
+                            })
+                            rows.append(row)
+                    else:
+                        # Variation with addon group that has no items
+                        row = base_data.copy()
+                        row.update({
+                            "variation_item_id": variation.get("variationitemid"),
+                            "variation_id": variation.get("variationid"),
+                            "variation_name": variation.get("variation_name"),
+                            "variation_price": variation.get("variation_price"),
+                            "addon_name": None,
+                            "addon_item_selection": addon_ref.get("addon_item_selection"),
+                            "addon_item_selection_min": addon_ref.get("addon_item_selection_min", "0"),
+                            "addon_item_selection_max": addon_ref.get("addon_item_selection_max", "2"),
+                            "addon_price": None,
+                            "addon_id": None,
+                            "addon_group_id": addon_group_id,
+                            "addon_group_name": addon_group.get("addongroup_name", ""),
+                        })
+                        rows.append(row)
+        
+        return rows
     
     def _create_empty_row(self, restaurant_data: Dict) -> Dict:
         """Create an empty row with just restaurant info"""
